@@ -498,6 +498,12 @@ const DEFAULT_QUESTIONS = [
     section: null,
     options: ['Daily', 'Once a week', 'Once a month', 'Rarely'],
     hasOther: false, skipLogic: null
+  },
+  // === Additional Comments ===
+  {
+    id: 'q14', num: 14, text: 'Please provide any additional comments or suggestions regarding pedestrian safety near IGC.', type: 'textarea', required: false,
+    section: 'Additional Comments',
+    options: [], hasOther: false, skipLogic: null
   }
 ];
 
@@ -578,7 +584,7 @@ function renderSurvey() {
   qs.forEach((q, idx) => {
     if (q.section && q.section !== lastSection) {
       lastSection = q.section;
-      const icons = { 'Demographics': '&#128100;', 'General Pedestrian Behavior': '&#128694;', 'Pedestrian Hotspots': '&#128205;', 'Types of Accidents': '&#9888;', 'Safety Infrastructure': '&#128737;', 'Micromobility Riding Behaviors': '&#128756;' };
+      const icons = { 'Demographics': '&#128100;', 'General Pedestrian Behavior': '&#128694;', 'Pedestrian Hotspots': '&#128205;', 'Types of Accidents': '&#9888;', 'Safety Infrastructure': '&#128737;', 'Micromobility Riding Behaviors': '&#128756;', 'Additional Comments': '&#128221;' };
       html += `<div class="section-banner" data-section-for="${q.id}"><div class="section-icon">${icons[q.section] || '&#9679;'}</div>${q.section}</div>`;
     }
 
@@ -800,22 +806,27 @@ function renderOverview() {
   const responses = getResponses();
   const qs = getQuestions();
 
-  // Stats
+  // Stats - dynamically computed
   const total = responses.length;
-  const students = responses.filter(r => r.q1 === 'Student').length;
-  const intl = responses.filter(r => r.q2 === 'Yes').length;
-  const safetyQ = qs.find(q => q.type === 'scale');
-  let avgSafety = '-';
-  if (safetyQ) {
-    const vals = responses.map(r => parseFloat(r[safetyQ.id])).filter(v => !isNaN(v));
-    avgSafety = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '-';
+  // Threatened by micromobility
+  const threatened = responses.filter(r => r.q8 === 'Yes').length;
+  const threatenedPct = total > 0 ? Math.round(threatened / total * 100) + '%' : '-';
+  // Avg anxiety scale
+  const scaleQ = qs.find(q => q.type === 'scale');
+  let avgScale = '-';
+  if (scaleQ) {
+    const vals = responses.map(r => parseFloat(r[scaleQ.id])).filter(v => !isNaN(v));
+    avgScale = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '-';
   }
+  // Feel unsafe walking (Sometime unsafe + Very unsafe)
+  const unsafeCount = responses.filter(r => r.q4 === 'Very unsafe' || r.q4 === 'Sometime unsafe').length;
+  const unsafePct = total > 0 ? Math.round(unsafeCount / total * 100) + '%' : '-';
 
   document.getElementById('stat-grid').innerHTML = `
     <div class="stat-card"><div class="stat-icon stat-icon-1">&#128202;</div><div class="stat-num">${total}</div><div class="stat-label">Total Responses</div></div>
-    <div class="stat-card"><div class="stat-icon stat-icon-2">&#127891;</div><div class="stat-num">${students}</div><div class="stat-label">Students</div></div>
-    <div class="stat-card"><div class="stat-icon stat-icon-3">&#127758;</div><div class="stat-num">${intl}</div><div class="stat-label">International</div></div>
-    <div class="stat-card"><div class="stat-icon stat-icon-4">&#128737;</div><div class="stat-num">${avgSafety}</div><div class="stat-label">Avg. Safety (1-5)</div></div>
+    <div class="stat-card"><div class="stat-icon stat-icon-2">&#9888;</div><div class="stat-num">${unsafePct}</div><div class="stat-label">Feel Unsafe Walking</div></div>
+    <div class="stat-card"><div class="stat-icon stat-icon-3">&#128756;</div><div class="stat-num">${threatenedPct}</div><div class="stat-label">Threatened by Micromobility</div></div>
+    <div class="stat-card"><div class="stat-icon stat-icon-4">&#128737;</div><div class="stat-num">${avgScale}</div><div class="stat-label">Avg. Anxiety (1-5)</div></div>
   `;
 
   if (total === 0) {
@@ -878,18 +889,26 @@ function renderOverview() {
     });
   });
 
-  // Comments
-  const textQ = qs.find(q => q.type === 'textarea');
+  // Comments - show all textarea questions
+  const textQs = qs.filter(q => q.type === 'textarea');
   const commentsCard = document.getElementById('comments-card');
-  if (textQ) {
-    const comments = responses.map(r => ({ text: r[textQ.id], time: r.timestamp })).filter(c => c.text);
-    if (comments.length > 0) {
+  if (textQs.length > 0) {
+    let allCommentsHtml = '';
+    textQs.forEach(tq => {
+      const comments = responses.map(r => ({ text: r[tq.id], time: r.timestamp })).filter(c => c.text);
+      if (comments.length > 0) {
+        allCommentsHtml += `<h4 style="margin:16px 0 10px;font-size:0.9rem;color:var(--text-secondary);">Q${tq.num}. ${escapeHtml(tq.text)}</h4>`;
+        allCommentsHtml += comments.map(c =>
+          `<div class="comment-item">${escapeHtml(c.text)}<div class="comment-meta">${new Date(c.time).toLocaleString()}</div></div>`
+        ).join('');
+      }
+    });
+    if (allCommentsHtml) {
       commentsCard.style.display = 'block';
-      document.getElementById('comments-list').innerHTML = comments.map(c =>
-        `<div class="comment-item">${escapeHtml(c.text)}<div class="comment-meta">${new Date(c.time).toLocaleString()}</div></div>`
-      ).join('');
+      commentsCard.querySelector('h3').textContent = 'Open-ended Responses';
+      document.getElementById('comments-list').innerHTML = allCommentsHtml;
     } else { commentsCard.style.display = 'none'; }
-  }
+  } else { commentsCard.style.display = 'none'; }
 }
 
 // ===== RESPONSES TABLE =====
