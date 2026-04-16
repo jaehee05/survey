@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Survey on Pedestrian Safety and Jaywalking near IGC</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
+  --primary-light: #a5b4fc;
+  --primary-bg: #eef2ff;
+  --accent: #06b6d4;
+  --green: #10b981;
+  --green-dark: #059669;
+  --orange: #f59e0b;
+  --red: #ef4444;
+  --red-dark: #dc2626;
+  --pink: #ec4899;
+  --purple: #8b5cf6;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --text: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow: 0 4px 16px rgba(0,0,0,0.06);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.1);
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; -webkit-font-smoothing: antialiased; }
+
+/* ===== Animations ===== */
+@keyframes fadeInUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+@keyframes scaleIn { from { opacity:0; transform:scale(0.9); } to { opacity:1; transform:scale(1); } }
+@keyframes pulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.05); } }
+@keyframes slideDown { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
+@keyframes checkDraw { from { stroke-dashoffset: 50; } to { stroke-dashoffset: 0; } }
+.animate-in { animation: fadeInUp 0.5s ease-out both; }
+.animate-delay-1 { animation-delay: 0.1s; }
+.animate-delay-2 { animation-delay: 0.2s; }
+.animate-delay-3 { animation-delay: 0.3s; }
+
+/* ===== Nav ===== */
+.nav { background: var(--card); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); backdrop-filter: blur(12px); background: rgba(255,255,255,0.92); }
+.nav-inner { max-width: 780px; margin: 0 auto; display: flex; align-items: center; padding: 0 20px; }
+.nav-logo { font-weight: 800; font-size: 1.1rem; color: var(--primary); margin-right: auto; padding: 16px 0; letter-spacing: -0.5px; }
+.nav-tab { padding: 16px 20px; cursor: pointer; font-weight: 600; font-size: 0.9rem; color: var(--text-secondary); border-bottom: 2.5px solid transparent; transition: all 0.2s; user-select: none; }
+.nav-tab:hover { color: var(--primary); }
+.nav-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* ===== Layout ===== */
+.container { max-width: 780px; margin: 0 auto; padding: 28px 20px 60px; }
+.page { display: none; }
+.page.active { display: block; animation: fadeIn 0.3s ease; }
+
+/* ===== Survey Header ===== */
+.survey-hero { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%); color: #fff; border-radius: var(--radius); padding: 40px 36px; position: relative; overflow: hidden; }
+.survey-hero::before { content: ''; position: absolute; top: -50%; right: -20%; width: 300px; height: 300px; background: rgba(255,255,255,0.08); border-radius: 50%; }
+.survey-hero::after { content: ''; position: absolute; bottom: -30%; left: -10%; width: 200px; height: 200px; background: rgba(255,255,255,0.05); border-radius: 50%; }
+.survey-hero h1 { font-size: 1.65rem; font-weight: 800; margin-bottom: 14px; letter-spacing: -0.5px; position: relative; z-index: 1; }
+.survey-hero p { opacity: 0.9; font-size: 0.92rem; position: relative; z-index: 1; font-weight: 400; }
+.survey-hero .badge { display: inline-block; background: rgba(255,255,255,0.2); padding: 6px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; margin-top: 18px; position: relative; z-index: 1; backdrop-filter: blur(4px); }
+
+/* ===== Progress Bar ===== */
+.progress-wrap { background: var(--card); border-radius: var(--radius); padding: 16px 24px; margin-top: 16px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); }
+.progress-label { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
+.progress-bar { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--purple)); border-radius: 3px; transition: width 0.4s ease; width: 0%; }
+
+/* ===== Section Banner ===== */
+.section-banner { display: flex; align-items: center; gap: 10px; margin-top: 32px; margin-bottom: 4px; padding: 14px 22px; background: linear-gradient(135deg, #065f46, #047857); color: #fff; border-radius: var(--radius-sm); font-weight: 700; font-size: 0.9rem; letter-spacing: 0.3px; }
+.section-banner .section-icon { width: 28px; height: 28px; background: rgba(255,255,255,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; }
+
+/* ===== Question Card ===== */
+.question-card { background: var(--card); border-radius: var(--radius); padding: 28px 30px; margin-top: 14px; box-shadow: var(--shadow-sm); border: 1.5px solid var(--border); transition: all 0.25s ease; }
+.question-card:hover { box-shadow: var(--shadow); border-color: var(--primary-light); }
+.question-card.error { border-color: var(--red); }
+.question-card.error .q-title { color: var(--red); }
+.question-card.error .error-msg { display: block; }
+.error-msg { display: none; color: var(--red); font-size: 0.8rem; margin-top: 10px; font-weight: 500; }
+
+.q-num { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: var(--primary-bg); color: var(--primary); border-radius: 8px; font-size: 0.8rem; font-weight: 700; margin-right: 10px; flex-shrink: 0; }
+.q-title { font-weight: 600; font-size: 1rem; margin-bottom: 18px; display: flex; align-items: flex-start; }
+.q-title .star { color: var(--red); margin-left: 4px; font-weight: 400; }
+
+.option { display: flex; align-items: center; padding: 11px 16px; margin: 3px 0; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s; border: 1.5px solid transparent; }
+.option:hover { background: var(--primary-bg); border-color: var(--primary-light); }
+.option.selected { background: var(--primary-bg); border-color: var(--primary); }
+.option input[type="radio"],
+.option input[type="checkbox"] { width: 18px; height: 18px; margin-right: 12px; accent-color: var(--primary); cursor: pointer; flex-shrink: 0; }
+.option label { cursor: pointer; flex: 1; font-size: 0.93rem; color: var(--text); }
+.skip-note { font-size: 0.75rem; color: var(--red); margin-left: 8px; font-style: italic; font-weight: 500; background: #fef2f2; padding: 2px 8px; border-radius: 4px; }
+
+.other-input { margin-left: 30px; margin-top: 6px; border: none; border-bottom: 2px solid var(--border); padding: 8px 4px; font-size: 0.93rem; width: calc(100% - 30px); outline: none; transition: border-color 0.2s; font-family: inherit; background: transparent; }
+.other-input:focus { border-bottom-color: var(--primary); }
+
+/* ===== Scale ===== */
+.scale-container { display: flex; align-items: center; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+.scale-label { font-size: 0.82rem; color: var(--text-secondary); font-weight: 500; min-width: 80px; }
+.scale-label:first-child { text-align: right; }
+.scale-options { display: flex; gap: 6px; }
+.scale-option { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 16px; cursor: pointer; border-radius: var(--radius-sm); transition: all 0.15s; border: 1.5px solid var(--border); }
+.scale-option:hover { border-color: var(--primary-light); background: var(--primary-bg); }
+.scale-option.selected { border-color: var(--primary); background: var(--primary-bg); }
+.scale-option input { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
+.scale-option span { font-weight: 700; color: var(--text-secondary); font-size: 0.95rem; }
+
+/* ===== Textarea ===== */
+.textarea-field { width: 100%; min-height: 120px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 16px; font-size: 0.93rem; font-family: inherit; resize: vertical; outline: none; transition: border-color 0.2s; background: #fafbfc; }
+.textarea-field:focus { border-color: var(--primary); background: #fff; }
+
+/* ===== Buttons ===== */
+.btn { padding: 12px 28px; border: none; border-radius: var(--radius-sm); font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit; display: inline-flex; align-items: center; gap: 8px; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.35); }
+.btn-secondary { background: var(--bg); color: var(--text); border: 1.5px solid var(--border); }
+.btn-secondary:hover { background: #e2e8f0; }
+.btn-danger { background: #fef2f2; color: var(--red-dark); border: 1.5px solid #fecaca; }
+.btn-danger:hover { background: #fee2e2; }
+.btn-success { background: var(--green); color: #fff; }
+.btn-success:hover { background: var(--green-dark); }
+.btn-sm { padding: 8px 16px; font-size: 0.82rem; border-radius: 8px; }
+.btn-icon { width: 36px; height: 36px; padding: 0; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; }
+.form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 28px; }
+
+/* ===== Thank You ===== */
+.thankyou { text-align: center; background: var(--card); border-radius: var(--radius); padding: 60px 36px; margin-top: 24px; box-shadow: var(--shadow); border: 1px solid var(--border); animation: scaleIn 0.4s ease; }
+.thankyou-icon { width: 80px; height: 80px; background: linear-gradient(135deg, var(--green), #34d399); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; }
+.thankyou-icon svg { width: 40px; height: 40px; }
+.thankyou-icon svg path { stroke: #fff; stroke-width: 3; fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 50; animation: checkDraw 0.6s ease 0.2s both; }
+.thankyou h2 { color: var(--text); font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; }
+.thankyou p { color: var(--text-secondary); }
+.thankyou-actions { margin-top: 28px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+/* ===== Admin Login ===== */
+.login-card { max-width: 420px; margin: 80px auto; background: var(--card); border-radius: var(--radius); padding: 48px 40px; box-shadow: var(--shadow-lg); border: 1px solid var(--border); text-align: center; animation: scaleIn 0.4s ease; }
+.login-card h2 { font-size: 1.4rem; margin-bottom: 8px; }
+.login-card p { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 28px; }
+.login-icon { width: 64px; height: 64px; background: var(--primary-bg); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 1.8rem; }
+.input-group { position: relative; margin-bottom: 20px; }
+.input-field { width: 100%; padding: 14px 18px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 0.95rem; font-family: inherit; outline: none; transition: border-color 0.2s; }
+.input-field:focus { border-color: var(--primary); }
+.login-error { color: var(--red); font-size: 0.85rem; margin-top: -12px; margin-bottom: 16px; display: none; font-weight: 500; }
+
+/* ===== Admin Dashboard ===== */
+.admin-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 28px; }
+.admin-header h2 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px; }
+.admin-tabs { display: flex; gap: 4px; background: #f1f5f9; padding: 4px; border-radius: var(--radius-sm); }
+.admin-tab { padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); transition: all 0.2s; user-select: none; }
+.admin-tab.active { background: var(--card); color: var(--text); box-shadow: var(--shadow-sm); }
+.admin-tab:hover:not(.active) { color: var(--text); }
+
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 28px; }
+.stat-card { background: var(--card); border-radius: var(--radius); padding: 22px; border: 1px solid var(--border); transition: all 0.2s; }
+.stat-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
+.stat-card .stat-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 12px; }
+.stat-card .stat-num { font-size: 1.8rem; font-weight: 800; letter-spacing: -1px; }
+.stat-card .stat-label { font-size: 0.78rem; color: var(--text-muted); font-weight: 500; margin-top: 2px; }
+.stat-icon-1 { background: #eef2ff; color: var(--primary); }
+.stat-icon-2 { background: #ecfdf5; color: var(--green); }
+.stat-icon-3 { background: #fef3c7; color: var(--orange); }
+.stat-icon-4 { background: #fce7f3; color: var(--pink); }
+
+/* ===== Charts ===== */
+.chart-card { background: var(--card); border-radius: var(--radius); padding: 28px; margin-bottom: 16px; border: 1px solid var(--border); }
+.chart-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 20px; color: var(--text); }
+.chart-wrapper { position: relative; max-height: 320px; }
+.chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+
+.comments-card { background: var(--card); border-radius: var(--radius); padding: 28px; margin-top: 16px; border: 1px solid var(--border); }
+.comments-card h3 { margin-bottom: 16px; font-weight: 700; }
+.comment-item { background: #f8fafc; padding: 14px 18px; border-radius: var(--radius-sm); margin-bottom: 8px; font-size: 0.9rem; border-left: 3px solid var(--primary); }
+.comment-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; }
+
+/* ===== Responses Table ===== */
+.table-wrap { overflow-x: auto; background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); }
+.resp-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.resp-table th { background: #f8fafc; padding: 14px 16px; text-align: left; font-weight: 600; color: var(--text-secondary); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.resp-table td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; vertical-align: top; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.resp-table tr:hover td { background: #fafbff; }
+.resp-table .actions-cell { white-space: nowrap; }
+
+/* ===== Question Editor ===== */
+.editor-card { background: var(--card); border-radius: var(--radius); padding: 24px 28px; margin-bottom: 14px; border: 1px solid var(--border); transition: all 0.2s; }
+.editor-card:hover { border-color: var(--primary-light); }
+.editor-card.editing { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+.editor-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.editor-q-num { background: var(--primary-bg); color: var(--primary); font-weight: 700; font-size: 0.8rem; padding: 4px 10px; border-radius: 6px; }
+.editor-q-title { font-weight: 600; font-size: 0.95rem; flex: 1; }
+.editor-q-type { font-size: 0.75rem; color: var(--text-muted); background: #f1f5f9; padding: 3px 10px; border-radius: 4px; }
+.editor-body { margin-top: 14px; }
+.editor-option { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 0.88rem; color: var(--text-secondary); }
+.editor-option .dot { width: 8px; height: 8px; border: 2px solid var(--text-muted); border-radius: 50%; flex-shrink: 0; }
+.editor-option .dot.checkbox { border-radius: 3px; }
+
+/* Edit Mode */
+.edit-form { margin-top: 16px; animation: slideDown 0.3s ease; }
+.edit-input { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.9rem; font-family: inherit; outline: none; margin-bottom: 10px; }
+.edit-input:focus { border-color: var(--primary); }
+.edit-option-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.edit-option-row input { flex: 1; }
+.edit-actions { display: flex; gap: 8px; margin-top: 12px; }
+
+/* ===== Modal ===== */
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,23,42,0.5); z-index: 200; display: none; align-items: center; justify-content: center; animation: fadeIn 0.2s ease; backdrop-filter: blur(4px); }
+.modal-overlay.show { display: flex; }
+.modal { background: var(--card); border-radius: var(--radius); padding: 32px; max-width: 480px; width: 90%; box-shadow: var(--shadow-lg); animation: scaleIn 0.3s ease; }
+.modal h3 { font-size: 1.15rem; margin-bottom: 12px; }
+.modal p { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 24px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+/* ===== No Data ===== */
+.no-data { text-align: center; padding: 80px 20px; }
+.no-data-icon { width: 80px; height: 80px; background: #f1f5f9; border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 2rem; }
+.no-data h3 { color: var(--text); margin-bottom: 8px; }
+.no-data p { color: var(--text-muted); font-size: 0.9rem; }
+
+/* ===== Toolbar ===== */
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+
+/* ===== Responsive ===== */
+@media (max-width: 600px) {
+  .nav-tab { padding: 14px 12px; font-size: 0.82rem; }
+  .survey-hero { padding: 28px 24px; }
+  .survey-hero h1 { font-size: 1.3rem; }
+  .question-card { padding: 22px 20px; }
+  .scale-option { padding: 10px 12px; }
+  .admin-tabs { overflow-x: auto; }
+  .chart-grid { grid-template-columns: 1fr; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .login-card { margin: 40px 16px; padding: 36px 24px; }
+}
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-inner">
+    <div class="nav-logo">IGC Survey</div>
+    <div class="nav-tab active" onclick="showPage('survey')" data-page="survey">Survey</div>
+    <div class="nav-tab" onclick="showPage('admin')" data-page="admin">Admin</div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ==================== SURVEY PAGE ==================== -->
+<div id="page-survey" class="page active">
+
+  <div class="survey-hero animate-in">
+    <h1>Survey on Pedestrian Safety and Jaywalking near IGC</h1>
+    <p>This survey is conducted to understand the pedestrian environment and jaywalking behaviors of IGC community members on their way to Triple Street.</p>
+    <p style="margin-top:8px;">Your responses will be used for academic research purposes (EAP116 SAP Project) to suggest infrastructure improvements.</p>
+    <div class="badge">* Required question</div>
+  </div>
+
+  <div class="progress-wrap animate-in animate-delay-1">
+    <div class="progress-label">Progress: <span id="progress-text">0 / 10</span></div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  </div>
+
+  <form id="surveyForm" onsubmit="return submitSurvey(event)">
+    <div id="survey-questions-container"></div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" style="padding:14px 48px; font-size:1rem;">Submit Survey</button>
+    </div>
+  </form>
+
+  <div id="thankyou" class="thankyou" style="display:none;">
+    <div class="thankyou-icon">
+      <svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+    </div>
+    <h2>Thank you for your response!</h2>
+    <p>Your answers have been recorded successfully.</p>
+    <div class="thankyou-actions">
+      <button class="btn btn-secondary" onclick="resetForm()">Submit another response</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ADMIN PAGE ==================== -->
+<div id="page-admin" class="page">
+
+  <!-- Login -->
+  <div id="admin-login" class="login-card">
+    <div class="login-icon">&#128274;</div>
+    <h2>Admin Access</h2>
+    <p>Enter the admin password to view results and manage the survey.</p>
+    <div class="input-group">
+      <input type="password" class="input-field" id="admin-password" placeholder="Password" onkeydown="if(event.key==='Enter')adminLogin()">
+    </div>
+    <div class="login-error" id="login-error">Incorrect password. Please try again.</div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="adminLogin()">Sign In</button>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="admin-dashboard" style="display:none;">
+    <div class="admin-header">
+      <h2>Dashboard</h2>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-secondary btn-sm" onclick="adminLogout()">Logout</button>
+      </div>
+    </div>
+
+    <div class="admin-tabs" id="admin-tabs">
+      <div class="admin-tab active" onclick="showAdminTab('overview')">Overview</div>
+      <div class="admin-tab" onclick="showAdminTab('responses')">Responses</div>
+      <div class="admin-tab" onclick="showAdminTab('editor')">Edit Questions</div>
+      <div class="admin-tab" onclick="showAdminTab('settings')">Settings</div>
+    </div>
+
+    <!-- Overview Tab -->
+    <div id="tab-overview" class="admin-tab-content">
+      <div class="stat-grid" id="stat-grid"></div>
+      <div class="chart-grid" id="chart-grid"></div>
+      <div class="comments-card" id="comments-card" style="display:none;">
+        <h3>Q10. Additional Comments & Suggestions</h3>
+        <div id="comments-list"></div>
+      </div>
+    </div>
+
+    <!-- Responses Tab -->
+    <div id="tab-responses" class="admin-tab-content" style="display:none;">
+      <div class="toolbar">
+        <button class="btn btn-success btn-sm" onclick="exportCSV()">Export CSV</button>
+        <button class="btn btn-danger btn-sm" onclick="showModal('clear')">Clear All Data</button>
+        <span style="margin-left:auto;font-size:0.85rem;color:var(--text-muted);" id="resp-count-label"></span>
+      </div>
+      <div id="responses-table-wrap"></div>
+    </div>
+
+    <!-- Editor Tab -->
+    <div id="tab-editor" class="admin-tab-content" style="display:none;">
+      <div class="toolbar">
+        <button class="btn btn-primary btn-sm" onclick="addQuestion()">+ Add Question</button>
+        <button class="btn btn-secondary btn-sm" onclick="resetQuestions()">Reset to Default</button>
+      </div>
+      <div id="editor-list"></div>
+    </div>
+
+    <!-- Settings Tab -->
+    <div id="tab-settings" class="admin-tab-content" style="display:none;">
+      <div class="editor-card">
+        <h3 style="margin-bottom:16px;">Change Admin Password</h3>
+        <div class="input-group">
+          <input type="password" class="input-field" id="new-password" placeholder="New password" style="margin-bottom:12px;">
+        </div>
+        <div class="input-group">
+          <input type="password" class="input-field" id="confirm-password" placeholder="Confirm new password" style="margin-bottom:12px;">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="changePassword()">Update Password</button>
+        <div id="pw-msg" style="margin-top:10px;font-size:0.85rem;display:none;"></div>
+      </div>
+      <div class="editor-card" style="margin-top:14px;">
+        <h3 style="margin-bottom:16px;">Import / Export Data</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-secondary btn-sm" onclick="exportJSON()">Export All (JSON)</button>
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('import-file').click()">Import JSON</button>
+          <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importJSON(event)">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- ===== Modal ===== -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h3 id="modal-title"></h3>
+    <p id="modal-desc"></p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary btn-sm" onclick="hideModal()">Cancel</button>
+      <button class="btn btn-danger btn-sm" id="modal-confirm" onclick="">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== FIREBASE INIT =====
+firebase.initializeApp({
+  apiKey: "AIzaSyCI0xpVHbreOjLdgRANTRz8CDKNM2VXOlo",
+  authDomain: "k-omr-3aa94.firebaseapp.com",
+  projectId: "k-omr-3aa94",
+  storageBucket: "k-omr-3aa94.firebasestorage.app",
+  messagingSenderId: "1015155997570",
+  appId: "1:1015155997570:web:80162c257fbda9cf846d9b"
+});
+const db = firebase.firestore();
+
+// ===== FIRESTORE HELPERS =====
+// Local cache so UI stays snappy; synced with Firestore
+let _cachedQuestions = null;
+let _cachedResponses = null;
+let _cachedPassword = null;
+
+async function getPassword() {
+  if (_cachedPassword) return _cachedPassword;
+  try {
+    const doc = await db.collection('config').doc('settings').get();
+    _cachedPassword = doc.exists && doc.data().password ? doc.data().password : 'admin1234';
+  } catch(e) { _cachedPassword = 'admin1234'; }
+  return _cachedPassword;
+}
+
+// ===== DEFAULT QUESTIONS =====
+const DEFAULT_QUESTIONS = [
+  {
+    id: 'q1', num: 1, text: 'Please select your affiliation.', type: 'radio', required: true,
+    section: null,
+    options: ['Student', 'Faculty'],
+    hasOther: true,
+    skipLogic: null
+  },
+  {
+    id: 'q2', num: 2, text: 'Are you an international student?', type: 'radio', required: true,
+    section: null,
+    options: ['Yes', 'No'],
+    hasOther: false,
+    skipLogic: null
+  },
+  {
+    id: 'q3', num: 3, text: 'How often do you walk from IGC to Triple Street?', type: 'radio', required: true,
+    section: null,
+    options: ['Daily', '3-4 times a week', '1-2 times a week', 'Rarely', 'Never'],
+    hasOther: false,
+    skipLogic: null
+  },
+  {
+    id: 'q4', num: 4, text: 'Have you ever jaywalked while walking between IGC and Triple Street?', type: 'radio', required: true,
+    section: 'Jaywalking Behavior',
+    options: ['Yes, frequently', 'Yes, occasionally', 'Rarely', 'Never'],
+    hasOther: false,
+    skipLogic: { value: 'Never', skipTo: 'q8' }
+  },
+  {
+    id: 'q5', num: 5, text: 'Where do you usually jaywalk?', type: 'radio', required: true,
+    section: null,
+    options: ['On the roadside between the bus stop and El Terrace. (Triple Street)', 'Toward the main gate of the IGC Campus.', 'Toward the rear gate of the IGC Campus (POSCO R&D Center)'],
+    hasOther: true,
+    conditionalOn: 'q4', hideWhenValue: 'Never',
+    skipLogic: null
+  },
+  {
+    id: 'q6', num: 6, text: 'Have you ever been caught by the police for jaywalking?', type: 'radio', required: true,
+    section: null,
+    options: ['Yes', 'No'],
+    hasOther: false,
+    conditionalOn: 'q4', hideWhenValue: 'Never',
+    skipLogic: null
+  },
+  {
+    id: 'q7', num: 7, text: 'What is the primary reason for jaywalking on this route? (Multiple choices allowed)', type: 'checkbox', required: true,
+    section: 'Reasons for Jaywalking',
+    options: ['The distance to the nearest crosswalk is too far.', 'The traffic signal waiting time is too long.', 'The existing crosswalk is highly inefficient.', 'There is very little traffic, so it feels safe to cross.'],
+    hasOther: true,
+    conditionalOn: 'q4', hideWhenValue: 'Never',
+    skipLogic: null
+  },
+  {
+    id: 'q8', num: 8, text: 'On a scale of 1 to 5, how safe do you feel when walking to Triple Street?', type: 'scale', required: true,
+    section: 'Infrastructure and Safety Perception',
+    scaleMin: 1, scaleMax: 5, scaleLabelMin: 'Very Unsafe', scaleLabelMax: 'Very Safe',
+    options: [],
+    hasOther: false,
+    skipLogic: null
+  },
+  {
+    id: 'q9', num: 9, text: 'Which of the following improvements do you think is most needed?', type: 'radio', required: true,
+    section: null,
+    options: ['Installing an additional crosswalk between IGC and Triple Street.', 'Shortening the traffic signal waiting time for pedestrians.', 'Building a pedestrian overpass.'],
+    hasOther: true,
+    skipLogic: null
+  },
+  {
+    id: 'q10', num: 10, text: 'Please provide any additional comments or suggestions regarding pedestrian safety near IGC.', type: 'textarea', required: false,
+    section: 'Suggestions',
+    options: [],
+    hasOther: false,
+    skipLogic: null
+  }
+];
+
+function getQuestions() {
+  return _cachedQuestions ? _cachedQuestions : JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+}
+
+async function loadQuestions() {
+  try {
+    const doc = await db.collection('config').doc('questions').get();
+    if (doc.exists && doc.data().list) {
+      _cachedQuestions = doc.data().list;
+    } else {
+      _cachedQuestions = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+    }
+  } catch(e) {
+    _cachedQuestions = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+  }
+  return _cachedQuestions;
+}
+
+async function saveQuestions(qs) {
+  _cachedQuestions = qs;
+  await db.collection('config').doc('questions').set({ list: qs });
+}
+
+function getResponses() {
+  return _cachedResponses || [];
+}
+
+async function loadResponses() {
+  try {
+    const snap = await db.collection('responses').orderBy('timestamp', 'asc').get();
+    _cachedResponses = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+  } catch(e) { _cachedResponses = []; }
+  return _cachedResponses;
+}
+
+async function addResponse(response) {
+  const docRef = await db.collection('responses').add(response);
+  response._id = docRef.id;
+  if (!_cachedResponses) _cachedResponses = [];
+  _cachedResponses.push(response);
+}
+
+async function deleteResponseById(id) {
+  await db.collection('responses').doc(id).delete();
+  _cachedResponses = _cachedResponses.filter(r => r._id !== id);
+}
+
+async function clearAllResponses() {
+  const snap = await db.collection('responses').get();
+  const batch = db.batch();
+  snap.docs.forEach(d => batch.delete(d.ref));
+  await batch.commit();
+  _cachedResponses = [];
+}
+
+// ===== NAVIGATION =====
+let isAdminLoggedIn = false;
+
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelector(`.nav-tab[data-page="${page}"]`).classList.add('active');
+  if (page === 'admin' && isAdminLoggedIn) showAdminTab('overview');
+  window.scrollTo(0, 0);
+}
+
+// ===== RENDER SURVEY =====
+function renderSurvey() {
+  const qs = getQuestions();
+  const container = document.getElementById('survey-questions-container');
+  let html = '';
+  let lastSection = null;
+
+  qs.forEach((q, idx) => {
+    if (q.section && q.section !== lastSection) {
+      lastSection = q.section;
+      const icons = { 'Jaywalking Behavior': '&#128694;', 'Reasons for Jaywalking': '&#128172;', 'Infrastructure and Safety Perception': '&#128737;', 'Suggestions': '&#128221;' };
+      html += `<div class="section-banner" data-section-for="${q.id}"><div class="section-icon">${icons[q.section] || '&#9679;'}</div>${q.section}</div>`;
+    }
+
+    const conditional = q.conditionalOn ? ` data-conditional="${q.conditionalOn}" data-hide-value="${q.hideWhenValue}"` : '';
+    html += `<div class="question-card animate-in" id="card-${q.id}" style="animation-delay:${idx*0.05}s"${conditional}>`;
+    html += `<div class="q-title"><span class="q-num">${q.num}</span><span>${escapeHtml(q.text)}${q.required ? '<span class="star"> *</span>' : ''}</span></div>`;
+
+    if (q.type === 'radio') {
+      q.options.forEach((opt, oi) => {
+        const skipNote = q.skipLogic && q.skipLogic.value === opt ? `<span class="skip-note">Skip to Q${getQuestions().find(x=>x.id===q.skipLogic.skipTo)?.num || '?'}</span>` : '';
+        html += `<div class="option" onclick="selectOption(this,'${q.id}')"><input type="radio" name="${q.id}" id="${q.id}_${oi}" value="${escapeAttr(opt)}" onchange="onAnswerChange('${q.id}')"><label for="${q.id}_${oi}">${escapeHtml(opt)}</label>${skipNote}</div>`;
+      });
+      if (q.hasOther) {
+        html += `<div class="option" onclick="selectOption(this,'${q.id}')"><input type="radio" name="${q.id}" id="${q.id}_other" value="__other__" onchange="onAnswerChange('${q.id}')"><label for="${q.id}_other">Other:</label></div>`;
+        html += `<input type="text" class="other-input" id="${q.id}_othertext" placeholder="Please specify">`;
+      }
+    } else if (q.type === 'checkbox') {
+      q.options.forEach((opt, oi) => {
+        html += `<div class="option" onclick="toggleCheckbox(this,'${q.id}_cb${oi}')"><input type="checkbox" name="${q.id}" id="${q.id}_cb${oi}" value="${escapeAttr(opt)}" onchange="onAnswerChange('${q.id}')"><label for="${q.id}_cb${oi}">${escapeHtml(opt)}</label></div>`;
+      });
+      if (q.hasOther) {
+        html += `<div class="option" onclick="toggleCheckbox(this,'${q.id}_cbother')"><input type="checkbox" name="${q.id}" id="${q.id}_cbother" value="__other__" onchange="onAnswerChange('${q.id}')"><label for="${q.id}_cbother">Other:</label></div>`;
+        html += `<input type="text" class="other-input" id="${q.id}_othertext" placeholder="Please specify">`;
+      }
+    } else if (q.type === 'scale') {
+      html += `<div class="scale-container"><span class="scale-label">${escapeHtml(q.scaleLabelMin||'')}</span><div class="scale-options">`;
+      for (let s = q.scaleMin; s <= q.scaleMax; s++) {
+        html += `<label class="scale-option" onclick="selectScale(this,'${q.id}')"><span>${s}</span><input type="radio" name="${q.id}" value="${s}" onchange="onAnswerChange('${q.id}')"></label>`;
+      }
+      html += `</div><span class="scale-label">${escapeHtml(q.scaleLabelMax||'')}</span></div>`;
+    } else if (q.type === 'textarea') {
+      html += `<textarea class="textarea-field" name="${q.id}" id="${q.id}_text" placeholder="Your thoughts..." oninput="onAnswerChange('${q.id}')"></textarea>`;
+    }
+
+    html += `<div class="error-msg">This question is required.</div></div>`;
+  });
+
+  container.innerHTML = html;
+  updateProgress();
+}
+
+function selectOption(el, qid) {
+  const card = document.getElementById('card-' + qid);
+  card.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  el.querySelector('input').checked = true;
+  onAnswerChange(qid);
+}
+
+function toggleCheckbox(el, cbid) {
+  const cb = document.getElementById(cbid);
+  if (event.target !== cb) cb.checked = !cb.checked;
+  el.classList.toggle('selected', cb.checked);
+  onAnswerChange(cbid.split('_cb')[0]);
+}
+
+function selectScale(el, qid) {
+  const card = document.getElementById('card-' + qid);
+  card.querySelectorAll('.scale-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+  el.querySelector('input').checked = true;
+  onAnswerChange(qid);
+}
+
+function onAnswerChange(qid) {
+  document.getElementById('card-' + qid)?.classList.remove('error');
+  // handle conditional visibility for all questions that depend on any answered question
+  const qs = getQuestions();
+  qs.forEach(oq => {
+    if (oq.conditionalOn) {
+      const parentVal = document.querySelector(`input[name="${oq.conditionalOn}"]:checked`)?.value;
+      const shouldHide = parentVal === oq.hideWhenValue;
+      const card = document.getElementById('card-' + oq.id);
+      const sectionBanner = document.querySelector(`[data-section-for="${oq.id}"]`);
+      if (card) card.style.display = shouldHide ? 'none' : '';
+      if (sectionBanner) sectionBanner.style.display = shouldHide ? 'none' : '';
+      if (shouldHide) {
+        card?.querySelectorAll('input').forEach(i => { i.checked = false; });
+        card?.querySelectorAll('.option, .scale-option').forEach(o => o.classList.remove('selected'));
+        const otherText = card?.querySelector('.other-input');
+        if (otherText) otherText.value = '';
+      }
+    }
+  });
+  updateProgress();
+}
+
+function updateProgress() {
+  const qs = getQuestions();
+  let answered = 0;
+  let total = qs.length;
+  qs.forEach(q => {
+    const card = document.getElementById('card-' + q.id);
+    if (!card || card.style.display === 'none') { total--; return; }
+    if (q.type === 'textarea') {
+      const ta = document.getElementById(q.id + '_text');
+      if (ta && ta.value.trim()) answered++;
+    } else if (q.type === 'checkbox') {
+      if (document.querySelectorAll(`input[name="${q.id}"]:checked`).length > 0) answered++;
+    } else {
+      if (document.querySelector(`input[name="${q.id}"]:checked`)) answered++;
+    }
+  });
+  document.getElementById('progress-text').textContent = `${answered} / ${total}`;
+  document.getElementById('progress-fill').style.width = total > 0 ? (answered/total*100)+'%' : '0%';
+}
+
+// ===== SUBMIT =====
+async function submitSurvey(e) {
+  e.preventDefault();
+  const qs = getQuestions();
+  let hasError = false;
+  const response = { timestamp: new Date().toISOString() };
+
+  qs.forEach(q => {
+    const card = document.getElementById('card-' + q.id);
+    if (!card || card.style.display === 'none') {
+      response[q.id] = q.type === 'checkbox' ? [] : 'N/A';
+      return;
+    }
+
+    if (q.type === 'textarea') {
+      const ta = document.getElementById(q.id + '_text');
+      response[q.id] = ta ? ta.value.trim() : '';
+    } else if (q.type === 'checkbox') {
+      const checked = [...document.querySelectorAll(`input[name="${q.id}"]:checked`)];
+      const vals = checked.map(cb => {
+        if (cb.value === '__other__') return 'Other: ' + (document.getElementById(q.id+'_othertext')?.value || '');
+        return cb.value;
+      });
+      response[q.id] = vals;
+      if (q.required && vals.length === 0) { card.classList.add('error'); hasError = true; }
+      else card.classList.remove('error');
+    } else {
+      const sel = document.querySelector(`input[name="${q.id}"]:checked`);
+      if (q.required && !sel) { card.classList.add('error'); hasError = true; }
+      else { card.classList.remove('error'); }
+      if (sel) {
+        response[q.id] = sel.value === '__other__' ? 'Other: ' + (document.getElementById(q.id+'_othertext')?.value || '') : sel.value;
+      } else {
+        response[q.id] = '';
+      }
+    }
+  });
+
+  if (hasError) {
+    document.querySelector('.question-card.error')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return false;
+  }
+
+  // Save to Firestore
+  const submitBtn = document.querySelector('#surveyForm .btn-primary');
+  submitBtn.disabled = true; submitBtn.textContent = 'Submitting...';
+  try {
+    await addResponse(response);
+    document.getElementById('surveyForm').style.display = 'none';
+    document.getElementById('thankyou').style.display = 'block';
+    window.scrollTo(0, 0);
+  } catch(e) {
+    alert('Failed to submit. Please check your internet connection and try again.');
+  }
+  submitBtn.disabled = false; submitBtn.textContent = 'Submit Survey';
+  return false;
+}
+
+function resetForm() {
+  document.getElementById('surveyForm').style.display = 'block';
+  document.getElementById('thankyou').style.display = 'none';
+  renderSurvey();
+  window.scrollTo(0, 0);
+}
+
+// ===== ADMIN =====
+async function adminLogin() {
+  const pw = document.getElementById('admin-password').value;
+  const correctPw = await getPassword();
+  if (pw === correctPw) {
+    isAdminLoggedIn = true;
+    document.getElementById('admin-login').style.display = 'none';
+    document.getElementById('admin-dashboard').style.display = 'block';
+    // Load data from Firestore before showing dashboard
+    await loadResponses();
+    await loadQuestions();
+    showAdminTab('overview');
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+    document.getElementById('admin-password').value = '';
+  }
+}
+
+function adminLogout() {
+  isAdminLoggedIn = false;
+  document.getElementById('admin-login').style.display = 'block';
+  document.getElementById('admin-dashboard').style.display = 'none';
+  document.getElementById('admin-password').value = '';
+  document.getElementById('login-error').style.display = 'none';
+}
+
+async function showAdminTab(tab) {
+  document.querySelectorAll('.admin-tab-content').forEach(t => t.style.display = 'none');
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).style.display = 'block';
+  const tabs = document.querySelectorAll('.admin-tab');
+  const idx = { overview: 0, responses: 1, editor: 2, settings: 3 }[tab];
+  tabs[idx]?.classList.add('active');
+
+  if (tab === 'overview') { await loadResponses(); renderOverview(); }
+  if (tab === 'responses') { await loadResponses(); renderResponsesTable(); }
+  if (tab === 'editor') renderEditor();
+}
+
+// ===== OVERVIEW =====
+const CHART_COLORS = ['#6366f1','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#06b6d4','#f97316','#84cc16','#14b8a6'];
+let chartInstances = {};
+
+function destroyCharts() { Object.values(chartInstances).forEach(c => c.destroy()); chartInstances = {}; }
+
+function renderOverview() {
+  const responses = getResponses();
+  const qs = getQuestions();
+
+  // Stats
+  const total = responses.length;
+  const students = responses.filter(r => r.q1 === 'Student').length;
+  const intl = responses.filter(r => r.q2 === 'Yes').length;
+  const safetyQ = qs.find(q => q.type === 'scale');
+  let avgSafety = '-';
+  if (safetyQ) {
+    const vals = responses.map(r => parseFloat(r[safetyQ.id])).filter(v => !isNaN(v));
+    avgSafety = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '-';
+  }
+
+  document.getElementById('stat-grid').innerHTML = `
+    <div class="stat-card"><div class="stat-icon stat-icon-1">&#128202;</div><div class="stat-num">${total}</div><div class="stat-label">Total Responses</div></div>
+    <div class="stat-card"><div class="stat-icon stat-icon-2">&#127891;</div><div class="stat-num">${students}</div><div class="stat-label">Students</div></div>
+    <div class="stat-card"><div class="stat-icon stat-icon-3">&#127758;</div><div class="stat-num">${intl}</div><div class="stat-label">International</div></div>
+    <div class="stat-card"><div class="stat-icon stat-icon-4">&#128737;</div><div class="stat-num">${avgSafety}</div><div class="stat-label">Avg. Safety (1-5)</div></div>
+  `;
+
+  if (total === 0) {
+    document.getElementById('chart-grid').innerHTML = `<div class="no-data"><div class="no-data-icon">&#128202;</div><h3>No responses yet</h3><p>Share the survey link to start collecting data.</p></div>`;
+    document.getElementById('comments-card').style.display = 'none';
+    return;
+  }
+
+  destroyCharts();
+
+  // Build chart cards
+  let chartHTML = '';
+  const chartQs = qs.filter(q => q.type !== 'textarea');
+  chartQs.forEach(q => {
+    chartHTML += `<div class="chart-card"><h3>Q${q.num}. ${escapeHtml(q.text.substring(0,60))}${q.text.length>60?'...':''}</h3><div class="chart-wrapper"><canvas id="chart-${q.id}"></canvas></div></div>`;
+  });
+  document.getElementById('chart-grid').innerHTML = chartHTML;
+
+  chartQs.forEach(q => {
+    const ctx = document.getElementById('chart-' + q.id);
+    if (!ctx) return;
+    let labels, data, chartType;
+
+    if (q.type === 'checkbox') {
+      const counts = {};
+      responses.forEach(r => { const arr = r[q.id]; if (Array.isArray(arr)) arr.forEach(v => { if(v) counts[v]=(counts[v]||0)+1; }); });
+      labels = Object.keys(counts); data = Object.values(counts);
+      chartType = 'bar';
+    } else {
+      const counts = {};
+      responses.forEach(r => { const v = r[q.id]; if(v && v!=='N/A') counts[v]=(counts[v]||0)+1; });
+      labels = Object.keys(counts); data = Object.values(counts);
+      chartType = labels.length <= 4 ? 'doughnut' : 'bar';
+    }
+
+    const shortLabels = labels.map(l => l.length > 40 ? l.substring(0,37)+'...' : l);
+    const isDoughnut = chartType === 'doughnut';
+
+    chartInstances['chart-'+q.id] = new Chart(ctx, {
+      type: chartType,
+      data: {
+        labels: shortLabels,
+        datasets: [{
+          data: data,
+          backgroundColor: isDoughnut ? CHART_COLORS.slice(0, labels.length) : CHART_COLORS[0],
+          borderColor: isDoughnut ? '#fff' : CHART_COLORS[0],
+          borderWidth: isDoughnut ? 3 : 0,
+          borderRadius: isDoughnut ? 0 : 8,
+          hoverOffset: isDoughnut ? 8 : 0,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        plugins: {
+          legend: { display: isDoughnut, position: 'bottom', labels: { padding: 16, usePointStyle: true, pointStyle: 'circle', font: { size: 12, family: 'Inter' } } },
+          tooltip: { backgroundColor: '#1e293b', titleFont: { family: 'Inter' }, bodyFont: { family: 'Inter' }, padding: 12, cornerRadius: 8 }
+        },
+        scales: isDoughnut ? {} : { y: { beginAtZero: true, ticks: { stepSize: 1, font: { family: 'Inter' } }, grid: { color: '#f1f5f9' } }, x: { ticks: { font: { family: 'Inter', size: 11 } }, grid: { display: false } } }
+      }
+    });
+  });
+
+  // Comments
+  const textQ = qs.find(q => q.type === 'textarea');
+  const commentsCard = document.getElementById('comments-card');
+  if (textQ) {
+    const comments = responses.map(r => ({ text: r[textQ.id], time: r.timestamp })).filter(c => c.text);
+    if (comments.length > 0) {
+      commentsCard.style.display = 'block';
+      document.getElementById('comments-list').innerHTML = comments.map(c =>
+        `<div class="comment-item">${escapeHtml(c.text)}<div class="comment-meta">${new Date(c.time).toLocaleString()}</div></div>`
+      ).join('');
+    } else { commentsCard.style.display = 'none'; }
+  }
+}
+
+// ===== RESPONSES TABLE =====
+function renderResponsesTable() {
+  const responses = getResponses();
+  const qs = getQuestions();
+  document.getElementById('resp-count-label').textContent = `${responses.length} response(s)`;
+
+  if (responses.length === 0) {
+    document.getElementById('responses-table-wrap').innerHTML = `<div class="no-data"><div class="no-data-icon">&#128196;</div><h3>No responses yet</h3></div>`;
+    return;
+  }
+
+  let html = '<div class="table-wrap"><table class="resp-table"><thead><tr><th>#</th><th>Time</th>';
+  qs.forEach(q => { html += `<th>Q${q.num}</th>`; });
+  html += '<th>Actions</th></tr></thead><tbody>';
+
+  responses.forEach((r, i) => {
+    html += `<tr><td>${i+1}</td><td>${new Date(r.timestamp).toLocaleDateString()}</td>`;
+    qs.forEach(q => {
+      let val = r[q.id];
+      if (Array.isArray(val)) val = val.join(', ');
+      val = val || '-';
+      if (val.length > 30) val = val.substring(0,27) + '...';
+      html += `<td title="${escapeAttr(String(r[q.id]))}">${escapeHtml(val)}</td>`;
+    });
+    html += `<td class="actions-cell"><button class="btn btn-danger btn-sm" style="padding:4px 10px;font-size:0.75rem;" onclick="deleteResponse('${r._id}')">Delete</button></td></tr>`;
+  });
+
+  html += '</tbody></table></div>';
+  document.getElementById('responses-table-wrap').innerHTML = html;
+}
+
+async function deleteResponse(id) {
+  await deleteResponseById(id);
+  renderResponsesTable();
+}
+
+// ===== QUESTION EDITOR =====
+let editingId = null;
+
+function renderEditor() {
+  const qs = getQuestions();
+  let html = '';
+  qs.forEach((q, idx) => {
+    const isEditing = editingId === q.id;
+    html += `<div class="editor-card ${isEditing?'editing':''}" id="editor-${q.id}">`;
+    html += `<div class="editor-header">
+      <span class="editor-q-num">Q${q.num}</span>
+      <span class="editor-q-title">${escapeHtml(q.text)}</span>
+      <span class="editor-q-type">${q.type}${q.required?' (required)':''}</span>
+    </div>`;
+
+    if (!isEditing) {
+      html += `<div class="editor-body">`;
+      if (q.section) html += `<div style="font-size:0.78rem;color:var(--green-dark);margin-bottom:6px;">Section: ${escapeHtml(q.section)}</div>`;
+      if (q.type === 'radio' || q.type === 'checkbox') {
+        q.options.forEach(opt => {
+          html += `<div class="editor-option"><div class="dot ${q.type==='checkbox'?'checkbox':''}"></div>${escapeHtml(opt)}</div>`;
+        });
+        if (q.hasOther) html += `<div class="editor-option"><div class="dot ${q.type==='checkbox'?'checkbox':''}"></div><em>Other (text input)</em></div>`;
+      } else if (q.type === 'scale') {
+        html += `<div class="editor-option">${q.scaleLabelMin} [${q.scaleMin}] ... [${q.scaleMax}] ${q.scaleLabelMax}</div>`;
+      } else if (q.type === 'textarea') {
+        html += `<div class="editor-option" style="color:var(--text-muted);font-style:italic;">Free text input</div>`;
+      }
+      if (q.skipLogic) {
+        const targetQ = qs.find(x => x.id === q.skipLogic.skipTo);
+        html += `<div style="margin-top:8px;padding:8px 12px;background:#fef3c7;border-radius:8px;font-size:0.8rem;color:#92400e;">Skip Logic: When "<strong>${escapeHtml(q.skipLogic.value)}</strong>" is selected, hide questions until <strong>Q${targetQ ? targetQ.num : '?'}</strong></div>`;
+      }
+      if (q.conditionalOn) {
+        const parentQ = qs.find(x => x.id === q.conditionalOn);
+        html += `<div style="margin-top:4px;padding:8px 12px;background:#ede9fe;border-radius:8px;font-size:0.8rem;color:#5b21b6;">Conditional: Hidden when Q${parentQ ? parentQ.num : '?'} = "<strong>${escapeHtml(q.hideWhenValue||'')}</strong>"</div>`;
+      }
+      html += `<div style="margin-top:14px;display:flex;gap:6px;">
+        <button class="btn btn-secondary btn-sm" onclick="startEdit('${q.id}')">Edit</button>
+        ${idx > 0 ? `<button class="btn btn-secondary btn-sm btn-icon" onclick="moveQuestion('${q.id}',-1)" title="Move up">&#9650;</button>` : ''}
+        ${idx < qs.length-1 ? `<button class="btn btn-secondary btn-sm btn-icon" onclick="moveQuestion('${q.id}',1)" title="Move down">&#9660;</button>` : ''}
+        <button class="btn btn-danger btn-sm" style="margin-left:auto;" onclick="showModal('deleteq',${idx})">Delete</button>
+      </div></div>`;
+    } else {
+      html += renderEditForm(q, idx);
+    }
+
+    html += `</div>`;
+  });
+  document.getElementById('editor-list').innerHTML = html;
+}
+
+function renderEditForm(q) {
+  const typeOptions = ['radio','checkbox','scale','textarea'].map(t => `<option value="${t}" ${q.type===t?'selected':''}>${t}</option>`).join('');
+  let html = `<div class="edit-form">
+    <label style="font-size:0.8rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Question Text</label>
+    <input class="edit-input" id="edit-text" value="${escapeAttr(q.text)}">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+      <div>
+        <label style="font-size:0.8rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Type</label>
+        <select class="edit-input" id="edit-type" style="margin-bottom:0;" onchange="onEditTypeChange()">${typeOptions}</select>
+      </div>
+      <div>
+        <label style="font-size:0.8rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px;">Section (optional)</label>
+        <input class="edit-input" id="edit-section" value="${escapeAttr(q.section||'')}" style="margin-bottom:0;" placeholder="e.g. Jaywalking Behavior">
+      </div>
+    </div>
+    <div style="display:flex;gap:16px;margin-bottom:14px;font-size:0.85rem;">
+      <label><input type="checkbox" id="edit-required" ${q.required?'checked':''} style="margin-right:6px;accent-color:var(--primary);">Required</label>
+      <label><input type="checkbox" id="edit-hasother" ${q.hasOther?'checked':''} style="margin-right:6px;accent-color:var(--primary);">Include "Other" option</label>
+    </div>` + renderSkipLogicEditor(q);
+
+  if (q.type === 'radio' || q.type === 'checkbox') {
+    html += `<label style="font-size:0.8rem;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:6px;">Options</label>
+    <div id="edit-options-list">`;
+    q.options.forEach((opt, oi) => {
+      html += `<div class="edit-option-row"><input class="edit-input" style="margin-bottom:0;" value="${escapeAttr(opt)}" data-opt-idx="${oi}"><button class="btn btn-danger btn-sm btn-icon" onclick="removeEditOption(${oi})" style="flex-shrink:0;" title="Remove">&#10005;</button></div>`;
+    });
+    html += `</div><button class="btn btn-secondary btn-sm" onclick="addEditOption()" style="margin-top:6px;">+ Add Option</button>`;
+  } else if (q.type === 'scale') {
+    html += `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+      <div><label style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);">Min</label><input class="edit-input" id="edit-scalemin" type="number" value="${q.scaleMin||1}"></div>
+      <div><label style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);">Max</label><input class="edit-input" id="edit-scalemax" type="number" value="${q.scaleMax||5}"></div>
+      <div><label style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);">Min Label</label><input class="edit-input" id="edit-scalelabelmin" value="${escapeAttr(q.scaleLabelMin||'')}"></div>
+      <div><label style="font-size:0.78rem;font-weight:600;color:var(--text-secondary);">Max Label</label><input class="edit-input" id="edit-scalelabelmax" value="${escapeAttr(q.scaleLabelMax||'')}"></div>
+    </div>`;
+  }
+
+  html += `<div class="edit-actions">
+    <button class="btn btn-primary btn-sm" onclick="saveEdit('${q.id}')">Save</button>
+    <button class="btn btn-secondary btn-sm" onclick="cancelEdit()">Cancel</button>
+  </div></div>`;
+  return html;
+}
+
+function renderSkipLogicEditor(q) {
+  const qs = getQuestions();
+  const hasSkip = !!q.skipLogic;
+  const hasCond = !!q.conditionalOn;
+
+  let html = `<div style="margin-top:12px;padding:16px;background:#fafbfc;border:1.5px solid var(--border);border-radius:var(--radius-sm);">
+    <div style="font-size:0.82rem;font-weight:700;color:var(--text-secondary);margin-bottom:10px;">Skip Logic & Conditional</div>`;
+
+  // --- Skip Logic: "When this answer is selected, hide questions until Q__" ---
+  if (q.type === 'radio' || q.type === 'checkbox') {
+    html += `<div style="margin-bottom:12px;">
+      <label style="font-size:0.82rem;display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+        <input type="checkbox" id="edit-skip-enabled" ${hasSkip?'checked':''} style="accent-color:var(--primary);" onchange="toggleSkipLogicFields()">
+        <strong>Skip Logic:</strong> When a specific answer is selected, hide following questions
+      </label>
+      <div id="edit-skip-fields" style="display:${hasSkip?'flex':'none'};gap:8px;flex-wrap:wrap;align-items:center;margin-left:22px;">
+        <span style="font-size:0.82rem;color:var(--text-secondary);">When</span>
+        <select class="edit-input" id="edit-skip-value" style="margin:0;width:auto;flex:1;min-width:120px;">`;
+    q.options.forEach(opt => {
+      html += `<option value="${escapeAttr(opt)}" ${q.skipLogic && q.skipLogic.value===opt?'selected':''}>${escapeHtml(opt)}</option>`;
+    });
+    if (q.hasOther) html += `<option value="__other__" ${q.skipLogic && q.skipLogic.value==='__other__'?'selected':''}>Other</option>`;
+    html += `</select>
+        <span style="font-size:0.82rem;color:var(--text-secondary);">skip to</span>
+        <select class="edit-input" id="edit-skip-target" style="margin:0;width:auto;min-width:100px;">`;
+    qs.forEach(oq => {
+      if (oq.id !== q.id) {
+        html += `<option value="${oq.id}" ${q.skipLogic && q.skipLogic.skipTo===oq.id?'selected':''}>Q${oq.num}</option>`;
+      }
+    });
+    html += `</select>
+      </div>
+    </div>`;
+  }
+
+  // --- Conditional: "This question is hidden when Q__ = __" ---
+  html += `<div>
+    <label style="font-size:0.82rem;display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+      <input type="checkbox" id="edit-cond-enabled" ${hasCond?'checked':''} style="accent-color:var(--purple);" onchange="toggleCondFields()">
+      <strong>Conditional:</strong> This question is hidden based on another question's answer
+    </label>
+    <div id="edit-cond-fields" style="display:${hasCond?'flex':'none'};gap:8px;flex-wrap:wrap;align-items:center;margin-left:22px;">
+      <span style="font-size:0.82rem;color:var(--text-secondary);">Hide when</span>
+      <select class="edit-input" id="edit-cond-source" style="margin:0;width:auto;min-width:100px;" onchange="updateCondValueOptions()">`;
+  qs.forEach(oq => {
+    if (oq.id !== q.id && (oq.type === 'radio' || oq.type === 'checkbox')) {
+      html += `<option value="${oq.id}" ${q.conditionalOn===oq.id?'selected':''}>Q${oq.num}</option>`;
+    }
+  });
+  html += `</select>
+      <span style="font-size:0.82rem;color:var(--text-secondary);">=</span>
+      <select class="edit-input" id="edit-cond-value" style="margin:0;width:auto;flex:1;min-width:120px;">`;
+  // Populate with current source's options
+  const condSource = hasCond ? qs.find(x => x.id === q.conditionalOn) : qs.find(oq => oq.id !== q.id && (oq.type === 'radio' || oq.type === 'checkbox'));
+  if (condSource) {
+    condSource.options.forEach(opt => {
+      html += `<option value="${escapeAttr(opt)}" ${q.hideWhenValue===opt?'selected':''}>${escapeHtml(opt)}</option>`;
+    });
+  }
+  html += `</select>
+    </div>
+  </div>`;
+
+  html += `</div>`;
+  return html;
+}
+
+function toggleSkipLogicFields() {
+  const enabled = document.getElementById('edit-skip-enabled').checked;
+  document.getElementById('edit-skip-fields').style.display = enabled ? 'flex' : 'none';
+}
+
+function toggleCondFields() {
+  const enabled = document.getElementById('edit-cond-enabled').checked;
+  document.getElementById('edit-cond-fields').style.display = enabled ? 'flex' : 'none';
+}
+
+function updateCondValueOptions() {
+  const qs = getQuestions();
+  const sourceId = document.getElementById('edit-cond-source').value;
+  const source = qs.find(x => x.id === sourceId);
+  const select = document.getElementById('edit-cond-value');
+  select.innerHTML = '';
+  if (source) {
+    source.options.forEach(opt => {
+      const o = document.createElement('option');
+      o.value = opt; o.textContent = opt;
+      select.appendChild(o);
+    });
+  }
+}
+
+function startEdit(id) { editingId = id; renderEditor(); }
+function cancelEdit() { editingId = null; renderEditor(); }
+
+async function onEditTypeChange() {
+  const qs = getQuestions();
+  const q = qs.find(x => x.id === editingId);
+  if (!q) return;
+  q.type = document.getElementById('edit-type').value;
+  if ((q.type === 'radio' || q.type === 'checkbox') && q.options.length === 0) q.options = ['Option 1'];
+  if (q.type === 'scale') { q.scaleMin = q.scaleMin || 1; q.scaleMax = q.scaleMax || 5; q.scaleLabelMin = q.scaleLabelMin || ''; q.scaleLabelMax = q.scaleLabelMax || ''; }
+  await saveQuestions(qs);
+  renderEditor();
+}
+
+async function addEditOption() {
+  const qs = getQuestions();
+  const q = qs.find(x => x.id === editingId);
+  if (!q) return;
+  const inputs = document.querySelectorAll('#edit-options-list input[data-opt-idx]');
+  inputs.forEach(inp => { q.options[parseInt(inp.dataset.optIdx)] = inp.value; });
+  q.options.push('New option');
+  await saveQuestions(qs);
+  renderEditor();
+}
+
+async function removeEditOption(idx) {
+  const qs = getQuestions();
+  const q = qs.find(x => x.id === editingId);
+  if (!q) return;
+  const inputs = document.querySelectorAll('#edit-options-list input[data-opt-idx]');
+  inputs.forEach(inp => { q.options[parseInt(inp.dataset.optIdx)] = inp.value; });
+  q.options.splice(idx, 1);
+  await saveQuestions(qs);
+  renderEditor();
+}
+
+async function saveEdit(id) {
+  const qs = getQuestions();
+  const q = qs.find(x => x.id === id);
+  if (!q) return;
+
+  q.text = document.getElementById('edit-text').value;
+  q.type = document.getElementById('edit-type').value;
+  q.section = document.getElementById('edit-section').value || null;
+  q.required = document.getElementById('edit-required').checked;
+  q.hasOther = document.getElementById('edit-hasother').checked;
+
+  if (q.type === 'radio' || q.type === 'checkbox') {
+    const inputs = document.querySelectorAll('#edit-options-list input[data-opt-idx]');
+    q.options = [...inputs].map(inp => inp.value).filter(v => v.trim());
+  } else if (q.type === 'scale') {
+    q.scaleMin = parseInt(document.getElementById('edit-scalemin').value) || 1;
+    q.scaleMax = parseInt(document.getElementById('edit-scalemax').value) || 5;
+    q.scaleLabelMin = document.getElementById('edit-scalelabelmin').value;
+    q.scaleLabelMax = document.getElementById('edit-scalelabelmax').value;
+  }
+
+  // Save skip logic
+  const skipEnabled = document.getElementById('edit-skip-enabled');
+  if (skipEnabled && skipEnabled.checked) {
+    const skipValue = document.getElementById('edit-skip-value').value;
+    const skipTarget = document.getElementById('edit-skip-target').value;
+    q.skipLogic = { value: skipValue, skipTo: skipTarget };
+    // Auto-set conditionalOn for questions between this and skipTo
+    const thisIdx = qs.findIndex(x => x.id === q.id);
+    const targetIdx = qs.findIndex(x => x.id === skipTarget);
+    if (thisIdx >= 0 && targetIdx > thisIdx) {
+      for (let i = thisIdx + 1; i < targetIdx; i++) {
+        qs[i].conditionalOn = q.id;
+        qs[i].hideWhenValue = skipValue;
+      }
+    }
+  } else if (skipEnabled) {
+    // Remove skip logic and clear related conditionals
+    if (q.skipLogic) {
+      qs.forEach(oq => {
+        if (oq.conditionalOn === q.id) {
+          delete oq.conditionalOn;
+          delete oq.hideWhenValue;
+        }
+      });
+    }
+    q.skipLogic = null;
+  }
+
+  // Save conditional
+  const condEnabled = document.getElementById('edit-cond-enabled');
+  if (condEnabled && condEnabled.checked) {
+    q.conditionalOn = document.getElementById('edit-cond-source').value;
+    q.hideWhenValue = document.getElementById('edit-cond-value').value;
+  } else if (condEnabled) {
+    delete q.conditionalOn;
+    delete q.hideWhenValue;
+  }
+
+  await saveQuestions(qs);
+  editingId = null;
+  renderEditor();
+  renderSurvey();
+}
+
+async function moveQuestion(id, dir) {
+  const qs = getQuestions();
+  const idx = qs.findIndex(x => x.id === id);
+  if (idx < 0) return;
+  const target = idx + dir;
+  if (target < 0 || target >= qs.length) return;
+  [qs[idx], qs[target]] = [qs[target], qs[idx]];
+  qs.forEach((q, i) => q.num = i + 1);
+  await saveQuestions(qs);
+  renderEditor();
+  renderSurvey();
+}
+
+async function addQuestion() {
+  const qs = getQuestions();
+  const newId = 'q' + Date.now();
+  qs.push({
+    id: newId, num: qs.length + 1, text: 'New Question', type: 'radio', required: false,
+    section: null, options: ['Option 1', 'Option 2'], hasOther: false, skipLogic: null
+  });
+  await saveQuestions(qs);
+  editingId = newId;
+  renderEditor();
+  renderSurvey();
+  document.getElementById('editor-' + newId)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+async function resetQuestions() {
+  if (confirm('Reset all questions to default? This will remove any custom questions.')) {
+    _cachedQuestions = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+    await saveQuestions(_cachedQuestions);
+    editingId = null;
+    renderEditor();
+    renderSurvey();
+  }
+}
+
+// ===== SETTINGS =====
+async function changePassword() {
+  const np = document.getElementById('new-password').value;
+  const cp = document.getElementById('confirm-password').value;
+  const msg = document.getElementById('pw-msg');
+  if (!np) { msg.style.display = 'block'; msg.style.color = 'var(--red)'; msg.textContent = 'Password cannot be empty.'; return; }
+  if (np !== cp) { msg.style.display = 'block'; msg.style.color = 'var(--red)'; msg.textContent = 'Passwords do not match.'; return; }
+  await db.collection('config').doc('settings').set({ password: np }, { merge: true });
+  _cachedPassword = np;
+  msg.style.display = 'block'; msg.style.color = 'var(--green)'; msg.textContent = 'Password updated successfully!';
+  document.getElementById('new-password').value = '';
+  document.getElementById('confirm-password').value = '';
+}
+
+// ===== EXPORT / IMPORT =====
+async function exportCSV() {
+  await loadResponses();
+  const responses = getResponses();
+  const qs = getQuestions();
+  if (!responses.length) return alert('No data to export.');
+
+  const headers = ['#', 'Timestamp', ...qs.map(q => `Q${q.num}_${q.text.substring(0,20)}`)];
+  const rows = [headers.join(',')];
+  responses.forEach((r, i) => {
+    const row = [i+1, r.timestamp, ...qs.map(q => {
+      let v = r[q.id];
+      if (Array.isArray(v)) v = v.join('; ');
+      return '"' + String(v || '').replace(/"/g, '""') + '"';
+    })];
+    rows.push(row.join(','));
+  });
+
+  download('survey_results_' + new Date().toISOString().slice(0,10) + '.csv', '\uFEFF' + rows.join('\n'), 'text/csv;charset=utf-8;');
+}
+
+async function exportJSON() {
+  await loadResponses();
+  const data = { questions: getQuestions(), responses: getResponses(), exportedAt: new Date().toISOString() };
+  download('survey_backup_' + new Date().toISOString().slice(0,10) + '.json', JSON.stringify(data, null, 2), 'application/json');
+}
+
+function importJSON(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(ev) {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (data.questions) await saveQuestions(data.questions);
+      if (data.responses && Array.isArray(data.responses)) {
+        for (const r of data.responses) {
+          const clean = { ...r };
+          delete clean._id;
+          await db.collection('responses').add(clean);
+        }
+        await loadResponses();
+      }
+      renderSurvey();
+      showAdminTab('overview');
+      alert('Data imported successfully!');
+    } catch(err) { alert('Invalid JSON file: ' + err.message); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function download(name, content, type) {
+  const blob = new Blob([content], { type });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+}
+
+// ===== MODAL =====
+let modalAction = null;
+function showModal(action, param) {
+  const overlay = document.getElementById('modal-overlay');
+  const title = document.getElementById('modal-title');
+  const desc = document.getElementById('modal-desc');
+  const btn = document.getElementById('modal-confirm');
+
+  if (action === 'clear') {
+    title.textContent = 'Clear All Data';
+    desc.textContent = 'Are you sure you want to delete all survey responses? This action cannot be undone.';
+    btn.textContent = 'Delete All';
+    btn.onclick = async () => { await clearAllResponses(); hideModal(); showAdminTab('overview'); };
+  } else if (action === 'deleteq') {
+    title.textContent = 'Delete Question';
+    desc.textContent = 'Are you sure you want to remove this question?';
+    btn.textContent = 'Delete';
+    btn.onclick = async () => {
+      const qs = getQuestions();
+      qs.splice(param, 1);
+      qs.forEach((q, i) => q.num = i + 1);
+      await saveQuestions(qs);
+      hideModal();
+      renderEditor();
+      renderSurvey();
+    };
+  }
+  overlay.classList.add('show');
+}
+function hideModal() { document.getElementById('modal-overlay').classList.remove('show'); }
+
+// ===== UTILS =====
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function escapeAttr(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ===== INIT =====
+(async () => {
+  await loadQuestions();
+  renderSurvey();
+})();
+</script>
+</body>
+</html>
