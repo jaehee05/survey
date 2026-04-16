@@ -174,8 +174,9 @@ body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color
 /* ===== Charts ===== */
 .chart-card { background: var(--card); border-radius: var(--radius); padding: 28px; margin-bottom: 16px; border: 1px solid var(--border); }
 .chart-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 20px; color: var(--text); }
-.chart-wrapper { position: relative; max-height: 320px; }
-.chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+.chart-wrapper { position: relative; }
+.chart-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+.chart-grid-2col { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
 
 .comments-card { background: var(--card); border-radius: var(--radius); padding: 28px; margin-top: 16px; border: 1px solid var(--border); }
 .comments-card h3 { margin-bottom: 16px; font-weight: 700; }
@@ -237,6 +238,7 @@ body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color
   .scale-option { padding: 10px 12px; }
   .admin-tabs { overflow-x: auto; }
   .chart-grid { grid-template-columns: 1fr; }
+  .chart-grid-2col { grid-template-columns: 1fr; }
   .stat-grid { grid-template-columns: repeat(2, 1fr); }
   .login-card { margin: 40px 16px; padding: 36px 24px; }
 }
@@ -416,7 +418,7 @@ async function getPassword() {
 
 // ===== DEFAULT QUESTIONS =====
 const DEFAULT_QUESTIONS = [
-  // === Demographics ===
+  // === 1. Demographics ===
   {
     id: 'q1', num: 1, text: 'What is your gender?', type: 'radio', required: true,
     section: 'Demographics',
@@ -429,7 +431,7 @@ const DEFAULT_QUESTIONS = [
     options: ['Every day (5+ times)', '3-4 times a week', '1-2 times a week', 'Rarely (less than once a week)'],
     hasOther: false, skipLogic: null
   },
-  // === General Pedestrian Behavior ===
+  // === 2. General Pedestrian Behavior ===
   {
     id: 'q3', num: 3, text: 'How do you usually move in Songdo?', type: 'radio', required: true,
     section: 'General Pedestrian Behavior',
@@ -442,10 +444,10 @@ const DEFAULT_QUESTIONS = [
     options: ['Very safe', 'Sometime safe', 'Sometime unsafe', 'Very unsafe'],
     hasOther: false, skipLogic: null
   },
-  // === Pedestrian Hotspots ===
+  // === 3. Pedestrian Problem Areas ===
   {
     id: 'q5', num: 5, text: 'Where do you most often experience pedestrian problems around IGC?', type: 'radio', required: true,
-    section: 'Pedestrian Hotspots',
+    section: 'Pedestrian Problem Areas',
     options: ['Near Triple Street crosswalk', 'Dorm area', 'Near the bus stop'],
     hasOther: true, skipLogic: null
   },
@@ -455,51 +457,51 @@ const DEFAULT_QUESTIONS = [
     options: ['Almost every day', 'A few times a week', 'A few times a month', 'Rarely'],
     hasOther: false, skipLogic: null
   },
-  // === Types of Accidents ===
+  // === 4. Micromobility Experience ===
   {
-    id: 'q7', num: 7, text: 'In your opinion, what kinds of accidents are most likely to happen because of poor transportation and frequent jaywalking?', type: 'textarea', required: true,
-    section: 'Types of Accidents',
-    options: [], hasOther: false, skipLogic: null
-  },
-  {
-    id: 'q8', num: 8, text: 'Have you ever personally felt threatened by micromobility (e.g. electric scooters, electric bikes) while walking here?', type: 'radio', required: true,
-    section: null,
+    id: 'q7', num: 7, text: 'Have you ever personally felt threatened by micromobility (e.g. electric scooters, electric bikes) while walking here?', type: 'radio', required: true,
+    section: 'Micromobility Experience',
     options: ['Yes', 'No'],
     hasOther: false, skipLogic: null
   },
-  // === Safety Infrastructure ===
   {
-    id: 'q9', num: 9, text: 'Do you think improvement is needed to prevent pedestrian problems?', type: 'radio', required: true,
-    section: 'Safety Infrastructure',
-    options: ['Strongly agree', 'Agree', 'Disagree', 'Strongly disagree'],
-    hasOther: false, skipLogic: null
-  },
-  {
-    id: 'q10', num: 10, text: 'On a scale of 1 to 5, how anxious do you feel when walking around blind spots because of micromobility?', type: 'scale', required: true,
+    id: 'q8', num: 8, text: 'Which of the following e-scooter riding behaviors makes you feel the most unsafe while walking on campus?', type: 'radio', required: true,
     section: null,
-    scaleMin: 1, scaleMax: 5, scaleLabelMin: 'Not anxious at all', scaleLabelMax: 'Extremely anxious',
-    options: [], hasOther: false, skipLogic: null
-  },
-  {
-    id: 'q11', num: 11, text: 'Which of the following safety infrastructure would make you feel more secure when walking near blind spots? (Multiple choices allowed)', type: 'checkbox', required: true,
-    section: null,
-    options: ['Convex warning mirrors', 'Physical speed bumps for scooters', 'Warning signs painted on the ground', 'Audible warning sensors'],
-    hasOther: true, skipLogic: null
-  },
-  // === Micromobility Riding Behaviors ===
-  {
-    id: 'q12', num: 12, text: 'Which of the following e-scooter riding behaviors makes you feel the most unsafe while walking on campus?', type: 'radio', required: true,
-    section: 'Micromobility Riding Behaviors',
     options: ['Two people riding on one scooter', 'Sudden turns without warning', 'Riding while using a smartphone'],
     hasOther: true, skipLogic: null
   },
   {
-    id: 'q13', num: 13, text: 'How often do you witness these dangerous riding behaviors?', type: 'radio', required: true,
+    id: 'q9', num: 9, text: 'How often do you witness these dangerous riding behaviors?', type: 'radio', required: true,
     section: null,
     options: ['Daily', 'Once a week', 'Once a month', 'Rarely'],
     hasOther: false, skipLogic: null
   },
-  // === Additional Comments ===
+  // === 5. Safety Perception ===
+  {
+    id: 'q10', num: 10, text: 'On a scale of 1 to 5, how anxious do you feel when walking around blind spots because of micromobility?', type: 'scale', required: true,
+    section: 'Safety Perception',
+    scaleMin: 1, scaleMax: 5, scaleLabelMin: 'Not anxious at all', scaleLabelMax: 'Extremely anxious',
+    options: [], hasOther: false, skipLogic: null
+  },
+  {
+    id: 'q11', num: 11, text: 'In your opinion, what kinds of accidents are most likely to happen because of poor transportation and frequent jaywalking?', type: 'textarea', required: true,
+    section: null,
+    options: [], hasOther: false, skipLogic: null
+  },
+  // === 6. Infrastructure Improvements ===
+  {
+    id: 'q12', num: 12, text: 'Do you think improvement is needed to prevent pedestrian problems?', type: 'radio', required: true,
+    section: 'Infrastructure Improvements',
+    options: ['Strongly agree', 'Agree', 'Disagree', 'Strongly disagree'],
+    hasOther: false, skipLogic: null
+  },
+  {
+    id: 'q13', num: 13, text: 'Which of the following safety infrastructure would make you feel more secure when walking near blind spots? (Multiple choices allowed)', type: 'checkbox', required: true,
+    section: null,
+    options: ['Convex warning mirrors', 'Physical speed bumps for scooters', 'Warning signs painted on the ground', 'Audible warning sensors'],
+    hasOther: true, skipLogic: null
+  },
+  // === 7. Additional Comments ===
   {
     id: 'q14', num: 14, text: 'Please provide any additional comments or suggestions regarding pedestrian safety near IGC.', type: 'textarea', required: false,
     section: 'Additional Comments',
@@ -584,7 +586,7 @@ function renderSurvey() {
   qs.forEach((q, idx) => {
     if (q.section && q.section !== lastSection) {
       lastSection = q.section;
-      const icons = { 'Demographics': '&#128100;', 'General Pedestrian Behavior': '&#128694;', 'Pedestrian Hotspots': '&#128205;', 'Types of Accidents': '&#9888;', 'Safety Infrastructure': '&#128737;', 'Micromobility Riding Behaviors': '&#128756;', 'Additional Comments': '&#128221;' };
+      const icons = { 'Demographics': '&#128100;', 'General Pedestrian Behavior': '&#128694;', 'Pedestrian Problem Areas': '&#128205;', 'Micromobility Experience': '&#128756;', 'Safety Perception': '&#9888;', 'Infrastructure Improvements': '&#128737;', 'Additional Comments': '&#128221;' };
       html += `<div class="section-banner" data-section-for="${q.id}"><div class="section-icon">${icons[q.section] || '&#9679;'}</div>${q.section}</div>`;
     }
 
@@ -808,8 +810,8 @@ function renderOverview() {
 
   // Stats - dynamically computed
   const total = responses.length;
-  // Threatened by micromobility
-  const threatened = responses.filter(r => r.q8 === 'Yes').length;
+  // Threatened by micromobility (q7 in new order)
+  const threatened = responses.filter(r => r.q7 === 'Yes').length;
   const threatenedPct = total > 0 ? Math.round(threatened / total * 100) + '%' : '-';
   // Avg anxiety scale
   const scaleQ = qs.find(q => q.type === 'scale');
@@ -886,12 +888,23 @@ function renderOverview() {
     return { chart: 'bar', palette: 'categorical', horizontal: avgLen > 25, showPct: true, sortByCount: false };
   }
 
-  // Build chart cards
+  // Build chart cards — donuts in 2-col grid, bars in full-width
   const chartQs = qs.filter(q => q.type !== 'textarea');
-  let chartHTML = '';
+  // Group: collect donuts together, bars separately
+  let donutCards = [], barCards = [];
   chartQs.forEach(q => {
-    chartHTML += `<div class="chart-card"><h3>Q${q.num}. ${escapeHtml(q.text.length > 80 ? q.text.substring(0,77)+'...' : q.text)}</h3><div class="chart-wrapper"><canvas id="chart-${q.id}"></canvas></div></div>`;
+    const p = detectChartProfile(q);
+    if (!p) return;
+    const card = `<div class="chart-card"><h3>Q${q.num}. ${escapeHtml(q.text)}</h3><div class="chart-wrapper"><canvas id="chart-${q.id}"></canvas></div></div>`;
+    if (p.chart === 'doughnut') donutCards.push({ q, card });
+    else barCards.push({ q, card });
   });
+  // Render: donuts in 2-col, then bars full width
+  let chartHTML = '';
+  if (donutCards.length) {
+    chartHTML += '<div class="chart-grid-2col">' + donutCards.map(d => d.card).join('') + '</div>';
+  }
+  chartHTML += barCards.map(b => b.card).join('');
   document.getElementById('chart-grid').innerHTML = chartHTML;
 
   chartQs.forEach(q => {
@@ -953,8 +966,8 @@ function renderOverview() {
       options: {
         indexAxis: isHorizontal ? 'y' : 'x',
         responsive: true,
-        maintainAspectRatio: !isHorizontal,
-        aspectRatio: isHorizontal ? Math.max(1.2, 0.4 * labels.length + 0.6) : 2,
+        maintainAspectRatio: true,
+        aspectRatio: isDoughnut ? 1.3 : (isHorizontal ? Math.max(1, 0.35 * labels.length + 0.5) : 1.8),
         plugins: {
           legend: {
             display: isDoughnut,
