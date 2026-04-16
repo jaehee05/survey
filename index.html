@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Survey on Pedestrian Safety and Jaywalking near IGC</title>
+<title>Pedestrian Safety & Micromobility Survey - IGC Campus</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -258,8 +258,8 @@ body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color
 <div id="page-survey" class="page active">
 
   <div class="survey-hero animate-in">
-    <h1>Survey on Pedestrian Safety and Jaywalking near IGC</h1>
-    <p>This survey is conducted to understand the pedestrian environment and jaywalking behaviors of IGC community members on their way to Triple Street.</p>
+    <h1>Pedestrian Safety & Micromobility Survey</h1>
+    <p>This survey aims to understand pedestrian behavior, safety concerns, and the impact of micromobility around IGC Campus and Songdo area.</p>
     <p style="margin-top:8px;">Your responses will be used for academic research purposes (EAP116 SAP Project) to suggest infrastructure improvements.</p>
     <div class="badge">* Required question</div>
   </div>
@@ -416,79 +416,88 @@ async function getPassword() {
 
 // ===== DEFAULT QUESTIONS =====
 const DEFAULT_QUESTIONS = [
+  // === Demographics ===
   {
-    id: 'q1', num: 1, text: 'Please select your affiliation.', type: 'radio', required: true,
-    section: null,
-    options: ['Student', 'Faculty'],
-    hasOther: true,
-    skipLogic: null
+    id: 'q1', num: 1, text: 'What is your gender?', type: 'radio', required: true,
+    section: 'Demographics',
+    options: ['Male', 'Female', 'Other', 'Prefer not to say'],
+    hasOther: false, skipLogic: null
   },
   {
-    id: 'q2', num: 2, text: 'Are you an international student?', type: 'radio', required: true,
+    id: 'q2', num: 2, text: 'How often do you visit IGC Campus per week?', type: 'radio', required: true,
+    section: null,
+    options: ['Every day (5+ times)', '3-4 times a week', '1-2 times a week', 'Rarely (less than once a week)'],
+    hasOther: false, skipLogic: null
+  },
+  // === General Pedestrian Behavior ===
+  {
+    id: 'q3', num: 3, text: 'How do you usually move in Songdo?', type: 'radio', required: true,
+    section: 'General Pedestrian Behavior',
+    options: ['On foot', 'By bus', 'By car or taxi', 'Micromobilities (e.g. E-scooter, E-bike)'],
+    hasOther: false, skipLogic: null
+  },
+  {
+    id: 'q4', num: 4, text: 'If you are on the sidewalk, how safe do you feel when walking in Songdo?', type: 'radio', required: true,
+    section: null,
+    options: ['Very safe', 'Sometime safe', 'Sometime unsafe', 'Very unsafe'],
+    hasOther: false, skipLogic: null
+  },
+  // === Pedestrian Hotspots ===
+  {
+    id: 'q5', num: 5, text: 'Where do you most often experience pedestrian problems around IGC?', type: 'radio', required: true,
+    section: 'Pedestrian Hotspots',
+    options: ['Near Triple Street crosswalk', 'Dorm area', 'Near the bus stop'],
+    hasOther: true, skipLogic: null
+  },
+  {
+    id: 'q6', num: 6, text: 'How often do you experience pedestrian problems?', type: 'radio', required: true,
+    section: null,
+    options: ['Almost every day', 'A few times a week', 'A few times a month', 'Rarely'],
+    hasOther: false, skipLogic: null
+  },
+  // === Types of Accidents ===
+  {
+    id: 'q7', num: 7, text: 'In your opinion, what kinds of accidents are most likely to happen because of poor transportation and frequent jaywalking?', type: 'textarea', required: true,
+    section: 'Types of Accidents',
+    options: [], hasOther: false, skipLogic: null
+  },
+  {
+    id: 'q8', num: 8, text: 'Have you ever personally felt threatened by micromobility (e.g. electric scooters, electric bikes) while walking here?', type: 'radio', required: true,
     section: null,
     options: ['Yes', 'No'],
-    hasOther: false,
-    skipLogic: null
+    hasOther: false, skipLogic: null
+  },
+  // === Safety Infrastructure ===
+  {
+    id: 'q9', num: 9, text: 'Do you think improvement is needed to prevent pedestrian problems?', type: 'radio', required: true,
+    section: 'Safety Infrastructure',
+    options: ['Strongly agree', 'Agree', 'Disagree', 'Strongly disagree'],
+    hasOther: false, skipLogic: null
   },
   {
-    id: 'q3', num: 3, text: 'How often do you walk from IGC to Triple Street?', type: 'radio', required: true,
+    id: 'q10', num: 10, text: 'On a scale of 1 to 5, how anxious do you feel when walking around blind spots because of micromobility?', type: 'scale', required: true,
     section: null,
-    options: ['Daily', '3-4 times a week', '1-2 times a week', 'Rarely', 'Never'],
-    hasOther: false,
-    skipLogic: null
+    scaleMin: 1, scaleMax: 5, scaleLabelMin: 'Not anxious at all', scaleLabelMax: 'Extremely anxious',
+    options: [], hasOther: false, skipLogic: null
   },
   {
-    id: 'q4', num: 4, text: 'Have you ever jaywalked while walking between IGC and Triple Street?', type: 'radio', required: true,
-    section: 'Jaywalking Behavior',
-    options: ['Yes, frequently', 'Yes, occasionally', 'Rarely', 'Never'],
-    hasOther: false,
-    skipLogic: { value: 'Never', skipTo: 'q8' }
-  },
-  {
-    id: 'q5', num: 5, text: 'Where do you usually jaywalk?', type: 'radio', required: true,
+    id: 'q11', num: 11, text: 'Which of the following safety infrastructure would make you feel more secure when walking near blind spots? (Multiple choices allowed)', type: 'checkbox', required: true,
     section: null,
-    options: ['On the roadside between the bus stop and El Terrace. (Triple Street)', 'Toward the main gate of the IGC Campus.', 'Toward the rear gate of the IGC Campus (POSCO R&D Center)'],
-    hasOther: true,
-    conditionalOn: 'q4', hideWhenValue: 'Never',
-    skipLogic: null
+    options: ['Convex warning mirrors', 'Physical speed bumps for scooters', 'Warning signs painted on the ground', 'Audible warning sensors'],
+    hasOther: true, skipLogic: null
+  },
+  // === Micromobility Riding Behaviors ===
+  {
+    id: 'q12', num: 12, text: 'Which of the following e-scooter riding behaviors makes you feel the most unsafe while walking on campus?', type: 'radio', required: true,
+    section: 'Micromobility Riding Behaviors',
+    options: ['Two people riding on one scooter', 'Sudden turns without warning', 'Riding while using a smartphone'],
+    hasOther: true, skipLogic: null
   },
   {
-    id: 'q6', num: 6, text: 'Have you ever been caught by the police for jaywalking?', type: 'radio', required: true,
+    id: 'q13', num: 13, text: 'How often do you witness these dangerous riding behaviors?', type: 'radio', required: true,
     section: null,
-    options: ['Yes', 'No'],
-    hasOther: false,
-    conditionalOn: 'q4', hideWhenValue: 'Never',
-    skipLogic: null
-  },
-  {
-    id: 'q7', num: 7, text: 'What is the primary reason for jaywalking on this route? (Multiple choices allowed)', type: 'checkbox', required: true,
-    section: 'Reasons for Jaywalking',
-    options: ['The distance to the nearest crosswalk is too far.', 'The traffic signal waiting time is too long.', 'The existing crosswalk is highly inefficient.', 'There is very little traffic, so it feels safe to cross.'],
-    hasOther: true,
-    conditionalOn: 'q4', hideWhenValue: 'Never',
-    skipLogic: null
-  },
-  {
-    id: 'q8', num: 8, text: 'On a scale of 1 to 5, how safe do you feel when walking to Triple Street?', type: 'scale', required: true,
-    section: 'Infrastructure and Safety Perception',
-    scaleMin: 1, scaleMax: 5, scaleLabelMin: 'Very Unsafe', scaleLabelMax: 'Very Safe',
-    options: [],
-    hasOther: false,
-    skipLogic: null
-  },
-  {
-    id: 'q9', num: 9, text: 'Which of the following improvements do you think is most needed?', type: 'radio', required: true,
-    section: null,
-    options: ['Installing an additional crosswalk between IGC and Triple Street.', 'Shortening the traffic signal waiting time for pedestrians.', 'Building a pedestrian overpass.'],
-    hasOther: true,
-    skipLogic: null
-  },
-  {
-    id: 'q10', num: 10, text: 'Please provide any additional comments or suggestions regarding pedestrian safety near IGC.', type: 'textarea', required: false,
-    section: 'Suggestions',
-    options: [],
-    hasOther: false,
-    skipLogic: null
+    options: ['Daily', 'Once a week', 'Once a month', 'Rarely'],
+    hasOther: false, skipLogic: null
   }
 ];
 
@@ -569,7 +578,7 @@ function renderSurvey() {
   qs.forEach((q, idx) => {
     if (q.section && q.section !== lastSection) {
       lastSection = q.section;
-      const icons = { 'Jaywalking Behavior': '&#128694;', 'Reasons for Jaywalking': '&#128172;', 'Infrastructure and Safety Perception': '&#128737;', 'Suggestions': '&#128221;' };
+      const icons = { 'Demographics': '&#128100;', 'General Pedestrian Behavior': '&#128694;', 'Pedestrian Hotspots': '&#128205;', 'Types of Accidents': '&#9888;', 'Safety Infrastructure': '&#128737;', 'Micromobility Riding Behaviors': '&#128756;' };
       html += `<div class="section-banner" data-section-for="${q.id}"><div class="section-icon">${icons[q.section] || '&#9679;'}</div>${q.section}</div>`;
     }
 
